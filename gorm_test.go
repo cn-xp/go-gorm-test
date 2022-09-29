@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -116,6 +117,51 @@ func TestRollBack(t *testing.T) {
 
 }
 
-func TestBatchCreate(t *testing.T) {
+func BatchCreate(fs []*Funtester) error {
+	var buffer bytes.Buffer
+	sql := "insert into `funtesters` (`name`, `age`,`created_at`) values"
+	if _, err := buffer.WriteString(sql); err != nil {
+		fmt.Println("batch error:", err)
+	}
+	for i, f := range fs {
+		if i == len(fs)-1 {
+			buffer.WriteString(fmt.Sprintf("('%s ','%d', '%s');", f.Name, f.Age, time.Now().Format("2006-01-02 15:04:05")))
+		} else {
+			buffer.WriteString(fmt.Sprintf("('%s ','%d','%s'),", f.Name, f.Age, time.Now().Format("2006-01-02 15:04:05")))
+		}
+	}
+	return drive.Exec(buffer.String()).Error
+}
 
+func TestBatchCreate(t *testing.T) {
+	fs := make([]*Funtester, 3, 3)
+	fs = []*Funtester{
+		&Funtester{
+			Name: "batchfs1",
+			Age:  10,
+		},
+		&Funtester{
+			Name: "batchfs2",
+			Age:  11,
+		},
+		&Funtester{
+			Name: "batchfs3",
+			Age:  12,
+		},
+	}
+	err := BatchCreate(fs)
+	if err != nil {
+		fmt.Println("test batch error:", err)
+		return
+	}
+	fmt.Println("batch test success!")
+}
+
+func TestBatchUpdate(t *testing.T) {
+	drive.Model(&Funtester{}).Where("name like ?", "Fun%").Updates(Funtester{Age: 9})
+}
+
+func TestBatchDelete(t *testing.T) {
+
+	drive.Where("age = ?", 9).Delete(Funtester{})
 }
